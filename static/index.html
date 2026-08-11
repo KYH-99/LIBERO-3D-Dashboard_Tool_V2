@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LIBERO Research Dashboard — smolVLA</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="site-header glass-panel">
+        <div class="header-left">
+            <div class="logo-dot"></div>
+            <h1>LIBERO_Research <span class="sub">/ smolVLA Interactive Dashboard</span></h1>
+        </div>
+        <div class="header-right">
+            <div class="metric-card success-card">
+                <span class="metric-label">Successes</span>
+                <strong id="success-count">0</strong>
+            </div>
+            <div class="metric-card failure-card">
+                <span class="metric-label">Failures</span>
+                <strong id="failure-count">0</strong>
+            </div>
+            <div class="sim-status" id="sim-status-badge">● IDLE</div>
+            <button class="btn btn-success" id="btn-report-success">✔ Mark Success</button>
+            <button class="btn btn-danger" id="btn-report-failure">✖ Mark Failure</button>
+        </div>
+    </header>
+
+    <div class="dashboard-grid">
+
+        <!-- ══════ LEFT COLUMN ══════ -->
+        <div class="col col-left">
+
+            <!-- 3-Camera Video Panel -->
+            <section class="panel glass-panel">
+                <div class="panel-header">
+                    <h2>📷 Live 3-Camera View</h2>
+                    <span class="badge" id="task-language-badge">—</span>
+                </div>
+                <div class="video-wrapper">
+                    <img id="mjpeg-stream" src="/api/stream" alt="Initializing stream…">
+                    <canvas id="overlay-canvas"></canvas>
+                    <!-- Camera labels -->
+                    <div class="cam-labels">
+                        <span>Agent View</span>
+                        <span>Wrist Cam</span>
+                        <span>Side View</span>
+                    </div>
+                </div>
+                <div class="inference-overlay">
+                    <span id="infer-point-label">3D Inference Point: [—, —, —]</span>
+                </div>
+            </section>
+
+            <!-- Dataset Replay Controls -->
+            <section class="panel glass-panel">
+                <div class="panel-header">
+                    <h2>🎬 Dataset Replay</h2>
+                    <div class="replay-controls">
+                        <button class="btn btn-primary" id="btn-play">▶ Play</button>
+                        <button class="btn btn-secondary" id="btn-pause">⏸ Pause</button>
+                        <button class="btn btn-secondary" id="btn-step">⏭ Step</button>
+                        <button class="btn btn-outline" id="btn-reset-ep">↺ Reset</button>
+                    </div>
+                </div>
+                <div class="frame-scrubber">
+                    <span class="scrubber-label" id="frame-label">Frame: 0 / 0</span>
+                    <input type="range" id="frame-slider" min="0" max="0" value="0" step="1" class="styled-slider">
+                </div>
+                <!-- Action vector display -->
+                <div class="vector-display">
+                    <h3>Current Action Vector <span class="badge mono">7-DOF</span></h3>
+                    <div id="action-vector-bars" class="bar-chart-row"></div>
+                    <div id="action-vector-values" class="mono-values"></div>
+                </div>
+                <!-- Obs state display -->
+                <div class="vector-display" style="margin-top:10px;">
+                    <h3>Observation State <span class="badge mono">first 10</span></h3>
+                    <div id="obs-vector-values" class="mono-values"></div>
+                </div>
+            </section>
+
+            <!-- Dataset Browser -->
+            <section class="panel glass-panel">
+                <div class="panel-header">
+                    <h2>📁 Dataset Browser</h2>
+                </div>
+                <div class="dataset-selectors">
+                    <div class="sel-group">
+                        <label>Suite</label>
+                        <select id="sel-suite" class="styled-select"></select>
+                    </div>
+                    <div class="sel-group">
+                        <label>Scenario / File</label>
+                        <select id="sel-scenario" class="styled-select"></select>
+                    </div>
+                    <div class="sel-group">
+                        <label>Episode</label>
+                        <select id="sel-episode" class="styled-select"></select>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+
+        <!-- ══════ CENTRE COLUMN ══════ -->
+        <div class="col col-centre">
+
+            <!-- Simulation & Teleop -->
+            <section class="panel glass-panel">
+                <div class="panel-header">
+                    <h2>🤖 Simulation & Teleop</h2>
+                    <div class="sim-buttons">
+                        <button class="btn btn-success" id="btn-sim-start">▶ Start</button>
+                        <button class="btn btn-danger" id="btn-sim-stop">⏸ Stop</button>
+                        <button class="btn btn-outline" id="btn-sim-reset">🔄 Reset</button>
+                    </div>
+                </div>
+
+                <!-- Translation D-Pad -->
+                <h3 class="sub-heading">Arm Movement (XYZ Translation)</h3>
+                <div class="dpad-container">
+                    <div class="dpad-col">
+                        <span class="axis-label">X (Left/Right)</span>
+                        <div class="dpad-row">
+                            <button class="btn btn-teleop" data-action="dx" data-val="-0.05">◀ Left</button>
+                            <button class="btn btn-teleop" data-action="dx" data-val="0.05">Right ▶</button>
+                        </div>
+                    </div>
+                    <div class="dpad-col">
+                        <span class="axis-label">Y (Fwd/Back)</span>
+                        <div class="dpad-row">
+                            <button class="btn btn-teleop" data-action="dy" data-val="-0.05">▲ Fwd</button>
+                            <button class="btn btn-teleop" data-action="dy" data-val="0.05">Back ▼</button>
+                        </div>
+                    </div>
+                    <div class="dpad-col">
+                        <span class="axis-label">Z (Up/Down)</span>
+                        <div class="dpad-row">
+                            <button class="btn btn-teleop" data-action="dz" data-val="0.05">▲ Up</button>
+                            <button class="btn btn-teleop" data-action="dz" data-val="-0.05">Down ▼</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Rotation Controls -->
+                <h3 class="sub-heading" style="margin-top:15px;">Rotation (Roll / Pitch / Yaw)</h3>
+                <div class="dpad-container">
+                    <div class="dpad-col">
+                        <span class="axis-label">Roll</span>
+                        <div class="dpad-row">
+                            <button class="btn btn-teleop" data-action="droll" data-val="-0.1">➖</button>
+                            <button class="btn btn-teleop" data-action="droll" data-val="0.1">➕</button>
+                        </div>
+                    </div>
+                    <div class="dpad-col">
+                        <span class="axis-label">Pitch</span>
+                        <div class="dpad-row">
+                            <button class="btn btn-teleop" data-action="dpitch" data-val="-0.1">➖</button>
+                            <button class="btn btn-teleop" data-action="dpitch" data-val="0.1">➕</button>
+                        </div>
+                    </div>
+                    <div class="dpad-col">
+                        <span class="axis-label">Yaw</span>
+                        <div class="dpad-row">
+                            <button class="btn btn-teleop" data-action="dyaw" data-val="-0.1">➖</button>
+                            <button class="btn btn-teleop" data-action="dyaw" data-val="0.1">➕</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gripper -->
+                <h3 class="sub-heading" style="margin-top:15px;">Gripper Control</h3>
+                <div class="gripper-row">
+                    <span class="axis-label">Open (-1)</span>
+                    <input type="range" id="gripper-slider" min="-1.0" max="1.0" step="0.05" value="0.0" class="styled-slider gripper-slider">
+                    <span class="axis-label">Close (+1)</span>
+                    <span class="gripper-value mono" id="gripper-value">0.00</span>
+                </div>
+            </section>
+
+            <!-- Action Chunk Inspector -->
+            <section class="panel glass-panel">
+                <div class="panel-header">
+                    <h2>📊 Action Chunk Inspector</h2>
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <span style="font-size:0.8rem; color:var(--text-secondary);">Click chart → execute up to that chunk</span>
+                        <button class="btn btn-primary" id="btn-trigger-inference">⚡ Run Inference</button>
+                    </div>
+                </div>
+                <div class="chunk-progress-row">
+                    <span>Progress:</span>
+                    <div class="chunk-progress-bar-wrapper">
+                        <div class="chunk-progress-bar" id="chunk-progress-bar"></div>
+                    </div>
+                    <span class="mono" id="chunk-progress-text">0 / 50</span>
+                </div>
+
+                <!-- Split: chart left, robot live view right -->
+                <div class="chunk-split">
+                    <div class="chunk-chart-pane">
+                        <div class="chart-wrapper">
+                            <canvas id="chunkChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chunk-robot-pane">
+                        <div class="chunk-robot-label">🤖 Agent View (Live)</div>
+                        <div class="chunk-robot-video">
+                            <img id="chunk-agent-stream" src="/api/stream/agent" alt="Robot view">
+                            <canvas id="chunk-overlay-canvas"></canvas>
+                        </div>
+                        <div class="chunk-robot-status mono" id="chunk-robot-status">Waiting…</div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- ══════ RIGHT COLUMN ══════ -->
+        <div class="col col-right">
+
+        <!-- EVALUATION RESULTS -->
+        <div class="panel eval-results">
+            <div class="panel-header">
+                <h2>📊 LIBERO Evaluation Results</h2>
+                <div class="suite-badge">Spatial</div>
+            </div>
+            
+            <div class="eval-summary">
+                <div class="stat-box main-stat">
+                    <div class="stat-value" id="eval-overall-rate">0.0% overall</div>
+                    <div class="stat-label">
+                        <span id="eval-success-count">0</span>
+                        <span class="stat-sub">Total Success</span>
+                    </div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="eval-total-eps">0</div>
+                    <div class="stat-label">Total Episodes</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="eval-success-rate">0.0%</div>
+                    <div class="stat-label">Success Rate</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="eval-task-count">0</div>
+                    <div class="stat-label">Tasks</div>
+                </div>
+            </div>
+
+            <div class="eval-tasks">
+                <h3>Per-Task Breakdown <span style="font-size: 12px; color: var(--text-muted); font-weight: normal;">(click to browse episodes)</span></h3>
+                <div id="eval-task-list" class="task-list">
+                    <!-- Tasks injected by JS -->
+                </div>
+            </div>
+
+            <div class="eval-episodes">
+                <div class="episodes-header">
+                    <h3>Episodes</h3>
+                    <label class="toggle-success">
+                        <input type="checkbox" id="eval-success-only" checked>
+                        <span>✓ Success Only</span>
+                    </label>
+                    <span id="eval-ep-count" class="ep-count">0 episodes</span>
+                </div>
+                <div id="eval-episode-grid" class="episode-grid">
+                    <!-- Episodes injected by JS -->
+                </div>
+            </div>
+        </div>
+
+
+            <!-- Live Data Flow Pipeline -->
+            <section class="panel glass-panel pipeline-panel">
+                <div class="panel-header">
+                    <h2>🔄 Live Data Flow Pipeline</h2>
+                </div>
+                <div class="pipeline">
+                    <div class="stage" id="stage-idle">
+                        <div class="stage-dot"></div>
+                        <div class="stage-content">
+                            <div class="stage-title">1 · IDLE / WAITING</div>
+                        </div>
+                    </div>
+                    <div class="stage-arrow">↓</div>
+                    <div class="stage" id="stage-preprocessing">
+                        <div class="stage-dot"></div>
+                        <div class="stage-content">
+                            <div class="stage-title">2 · PREPROCESSING</div>
+                            <div class="data-box" id="data-preproc"></div>
+                        </div>
+                    </div>
+                    <div class="stage-arrow">↓</div>
+                    <div class="stage" id="stage-inference">
+                        <div class="stage-dot"></div>
+                        <div class="stage-content">
+                            <div class="stage-title">3 · smolVLA INFERENCE</div>
+                            <div class="data-box" id="data-infer"></div>
+                        </div>
+                    </div>
+                    <div class="stage-arrow">↓</div>
+                    <div class="stage" id="stage-mujoco_step">
+                        <div class="stage-dot"></div>
+                        <div class="stage-content">
+                            <div class="stage-title">4 · MUJOCO STEP</div>
+                            <div class="data-box" id="data-step"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- System Logs -->
+            <section class="panel glass-panel">
+                <div class="panel-header">
+                    <h2>📋 System Logs</h2>
+                    <button class="btn btn-outline btn-sm" id="btn-clear-log">Clear</button>
+                </div>
+                <div class="log-window" id="log-window"></div>
+            </section>
+        </div>
+
+    </div>
+
+    <!-- Failure Modal -->
+    <div class="modal-overlay" id="failure-modal" style="display:none;">
+        <div class="modal glass-panel">
+            <h2>Record Failure Reason</h2>
+            <div class="failure-options">
+                <label><input type="radio" name="failure-reason" value="Collision"> Collision</label>
+                <label><input type="radio" name="failure-reason" value="Grasp Failure"> Grasp Failure</label>
+                <label><input type="radio" name="failure-reason" value="Timeout"> Timeout</label>
+                <label><input type="radio" name="failure-reason" value="Wrong Object"> Wrong Object</label>
+                <label><input type="radio" name="failure-reason" value="Trajectory Drift"> Trajectory Drift</label>
+                <label><input type="radio" name="failure-reason" value="Other"> Other</label>
+            </div>
+            <input type="text" id="failure-other-text" placeholder="Custom reason…" class="styled-input">
+            <div style="display:flex; gap:10px; margin-top:15px;">
+                <button class="btn btn-danger" id="btn-confirm-failure">Submit</button>
+                <button class="btn btn-outline" id="btn-cancel-failure">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+
+    <!-- VIDEO MODAL -->
+    <div id="video-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="video-modal-title">Video Evaluation</h3>
+                <button id="video-modal-close" class="btn-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <video id="video-player" controls autoplay></video>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
