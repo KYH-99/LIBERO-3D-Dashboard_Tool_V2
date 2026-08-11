@@ -1,5 +1,7 @@
 # LIBERO 3D Dashboard Tool V2
 
+![Dashboard Screenshot](screenshot.png)
+
 A comprehensive, interactive web dashboard for monitoring, evaluating, and visualizing Robosuite/LIBERO and LeRobot (Parquet) datasets in real-time. This tool bridges the gap between raw evaluation logs and intuitive visual analysis, enabling researchers to quickly browse evaluation episodes, monitor success rates, and stream 3D trajectory data seamlessly.
 
 ## Features

@@ -1,5 +1,7 @@
 # LIBERO 3D Dashboard Tool V2
 
+![Dashboard Screenshot](screenshot.png)
+
 Robosuite/LIBERO 및 LeRobot (Parquet) 데이터셋을 실시간으로 모니터링하고 평가, 시각화할 수 있는 대화형 웹 대시보드입니다. 이 도구는 원시 평가 로그 파일과 직관적인 시각적 분석 사이의 간극을 메워주며, 연구자들이 모델의 평가 결과를 빠르게 탐색하고, 성공률을 추적하며, 3D 궤적 데이터를 실시간으로 확인할 수 있게 해줍니다.
 
 ## 주요 기능
